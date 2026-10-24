@@ -198,7 +198,7 @@ function Brand() {
       <span className="brand-mark" aria-hidden="true">
         A
       </span>
-      <span>Ashlee Rivera</span>
+      <span>Ashlee Nicol T. Rivera</span>
     </a>
   )
 }
