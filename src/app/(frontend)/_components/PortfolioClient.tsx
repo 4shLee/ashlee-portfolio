@@ -28,21 +28,6 @@ import {
 } from "lucide-react"
 import ContactForm from "./ContactForm"
 
-import profilePhoto from "@public/profile.jpg"
-import cert1 from "@public/certificates/cert1.jpg"
-import cert2 from "@public/certificates/cert2.jpg"
-import cert3 from "@public/certificates/cert3.jpg"
-import cert4 from "@public/certificates/cert4.jpg"
-import cert5 from "@public/certificates/cert5.jpg"
-import cert6 from "@public/certificates/cert6.jpg"
-import cert7 from "@public/certificates/cert7.jpg"
-import cert8 from "@public/certificates/cert8.jpg"
-import cert9 from "@public/certificates/cert9.jpg"
-import cert10 from "@public/certificates/cert10.jpg"
-import cert11 from "@public/certificates/cert11.jpg"
-import cert12 from "@public/certificates/cert12.jpg"
-import cert13 from "@public/certificates/cert13.jpg"
-
 // Register GSAP ScrollTrigger only in browser environment to prevent SSR evaluation errors
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger)
@@ -225,7 +210,7 @@ const certificateGalleryItems = [
     title: "Information Technology Specialist",
     issuer: "Cor Jesu College",
     date: "2024",
-    image: cert1.src,
+    image: "/certificates/cert1.jpg",
     color: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)",
   },
   {
@@ -233,7 +218,7 @@ const certificateGalleryItems = [
     title: "Front-End Web Development",
     issuer: "React & Next.js Certified",
     date: "2024",
-    image: cert2.src,
+    image: "/certificates/cert2.jpg",
     color: "linear-gradient(135deg, #4c1d95 0%, #8b5cf6 50%, #c084fc 100%)",
   },
   {
@@ -241,7 +226,7 @@ const certificateGalleryItems = [
     title: "Interactive UI & Motion Craft",
     issuer: "GSAP Animation Systems",
     date: "2024",
-    image: cert3.src,
+    image: "/certificates/cert3.jpg",
     color: "linear-gradient(135deg, #065f46 0%, #10b981 50%, #34d399 100%)",
   },
   {
@@ -249,7 +234,7 @@ const certificateGalleryItems = [
     title: "Digital Art & Brand Design",
     issuer: "Visual Design Academy",
     date: "2023",
-    image: cert4.src,
+    image: "/certificates/cert4.jpg",
     color: "linear-gradient(135deg, #9d174d 0%, #ec4899 50%, #f472b6 100%)",
   },
   {
@@ -257,7 +242,7 @@ const certificateGalleryItems = [
     title: "UI/UX & Design Systems Masterclass",
     issuer: "Figma Academy Professional",
     date: "2024",
-    image: cert5.src,
+    image: "/certificates/cert5.jpg",
     color: "linear-gradient(135deg, #831843 0%, #db2777 50%, #f472b6 100%)",
   },
   {
@@ -265,7 +250,7 @@ const certificateGalleryItems = [
     title: "JavaScript Algorithms & Structures",
     issuer: "freeCodeCamp Certified",
     date: "2023",
-    image: cert6.src,
+    image: "/certificates/cert6.jpg",
     color: "linear-gradient(135deg, #78350f 0%, #d97706 50%, #fcd34d 100%)",
   },
   {
@@ -273,7 +258,7 @@ const certificateGalleryItems = [
     title: "Responsive Web Architecture",
     issuer: "W3C Developer Network",
     date: "2023",
-    image: cert7.src,
+    image: "/certificates/cert7.jpg",
     color: "linear-gradient(135deg, #134e4a 0%, #0d9488 50%, #5eead4 100%)",
   },
   {
@@ -281,7 +266,7 @@ const certificateGalleryItems = [
     title: "Database Management & SQL",
     issuer: "Oracle Academy Programs",
     date: "2023",
-    image: cert8.src,
+    image: "/certificates/cert8.jpg",
     color: "linear-gradient(135deg, #1e1b4b 0%, #4338ca 50%, #818cf8 100%)",
   },
   {
@@ -289,7 +274,7 @@ const certificateGalleryItems = [
     title: "Networking Essentials & Protocols",
     issuer: "Cisco Networking Academy",
     date: "2023",
-    image: cert9.src,
+    image: "/certificates/cert9.jpg",
     color: "linear-gradient(135deg, #0c4a6e 0%, #0284c7 50%, #38bdf8 100%)",
   },
   {
@@ -297,7 +282,7 @@ const certificateGalleryItems = [
     title: "Cloud Fundamentals & Deployment",
     issuer: "Cloud Computing Track",
     date: "2023",
-    image: cert10.src,
+    image: "/certificates/cert10.jpg",
     color: "linear-gradient(135deg, #1f2937 0%, #4b5563 50%, #9ca3af 100%)",
   },
   {
@@ -305,7 +290,7 @@ const certificateGalleryItems = [
     title: "Typography, Logo & Identity Craft",
     issuer: "Creative Visual Guild",
     date: "2022",
-    image: cert11.src,
+    image: "/certificates/cert11.jpg",
     color: "linear-gradient(135deg, #701a75 0%, #c026d3 50%, #f0abfc 100%)",
   },
   {
@@ -313,7 +298,7 @@ const certificateGalleryItems = [
     title: "Git, GitHub & Collaborative DevOps",
     issuer: "GitHub Education Track",
     date: "2022",
-    image: cert12.src,
+    image: "/certificates/cert12.jpg",
     color: "linear-gradient(135deg, #14532d 0%, #16a34a 50%, #86efac 100%)",
   },
   {
@@ -321,7 +306,7 @@ const certificateGalleryItems = [
     title: "Cybersecurity & Web Integrity",
     issuer: "Security Systems Essentials",
     date: "2022",
-    image: cert13.src,
+    image: "/certificates/cert13.jpg",
     color: "linear-gradient(135deg, #312e81 0%, #6366f1 50%, #a5b4fc 100%)",
   },
 ]
@@ -1230,7 +1215,7 @@ export default function PortfolioClient({
             <div className="hero-orb" />
             <div className="portrait-frame">
               <Image
-                src={profilePhoto.src || profilePhoto}
+                src="/profile.jpg"
                 alt="Portrait photo of Ashlee"
                 fill
                 priority
@@ -1255,7 +1240,7 @@ export default function PortfolioClient({
               </p>
               <div className="about-image">
                 <Image
-                  src={profilePhoto.src || profilePhoto}
+                  src="/profile.jpg"
                   alt="Portrait photo of Ashlee"
                   fill
                   sizes="(max-width: 768px) 100vw, 32vw"
