@@ -1525,7 +1525,7 @@ export default function PortfolioClient({
         </div>
         <div className="shell footer-bottom">
           <p suppressHydrationWarning>
-            © {new Date().getFullYear()} Ashlee Rivera. All rights reserved.
+            © {new Date().getFullYear()} 2026 Ashlee Rivera. Built with passion in Digos City, Philippines..
           </p>
           <a href="#top">
             Back to top <ArrowUpRight size={15} />
