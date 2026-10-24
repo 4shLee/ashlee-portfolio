@@ -16,6 +16,13 @@ import { ContactSubmissions } from "./collections/ContactSubmissions"
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+// Provide fallback placeholders during standalone Vercel / CI builds so that
+// buildFigmaConfig does not log missing Environment ID errors during route collection.
+if (!process.env.FIGMA_EID) process.env.FIGMA_EID = "build-eid"
+if (!process.env.FIGMA_CONTENT_SYSTEM_ID) process.env.FIGMA_CONTENT_SYSTEM_ID = "build-csid"
+if (!process.env.FIGMA_CONTENT_API_URL) process.env.FIGMA_CONTENT_API_URL = "https://figma.com/api"
+if (!process.env.FIGMA_OAUTH_CLIENT_ID) process.env.FIGMA_OAUTH_CLIENT_ID = "build-client-id"
+
 export default buildFigmaConfig({
   admin: {
     user: Admins.slug,
@@ -55,5 +62,5 @@ export default buildFigmaConfig({
     outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   plugins: [mcpPlugin({})],
-  figma: {},
+  figma: { contentSystemId: process.env.FIGMA_CONTENT_SYSTEM_ID || "build-csid" },
 })
