@@ -14,7 +14,9 @@ const makePublicPreviewOrigin = (() => {
 })()
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Use standalone output only when not deploying to Vercel.
+  // On Vercel, standard output allows Vercel to natively host the public folder and optimize images.
+  output: process.env.VERCEL ? undefined : 'standalone',
   images: {
     loader: 'custom',
     loaderFile: './figma-image-loader.ts',
