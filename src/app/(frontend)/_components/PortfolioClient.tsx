@@ -1230,7 +1230,7 @@ export default function PortfolioClient({
             <div className="hero-orb" />
             <div className="portrait-frame">
               <Image
-                src={profilePhoto}
+                src={profilePhoto.src || profilePhoto}
                 alt="Portrait photo of Ashlee"
                 fill
                 priority
@@ -1255,7 +1255,7 @@ export default function PortfolioClient({
               </p>
               <div className="about-image">
                 <Image
-                  src={profilePhoto}
+                  src={profilePhoto.src || profilePhoto}
                   alt="Portrait photo of Ashlee"
                   fill
                   sizes="(max-width: 768px) 100vw, 32vw"
