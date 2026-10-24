@@ -736,57 +736,212 @@ const weatherCities = [
   {
     city: "Digos City",
     province: "Davao del Sur",
-    type: "rainy" as const,
-    tempC: 24,
-    condition: "Tropical Thunderstorm",
-    humidity: 86,
-    wind: 12,
-    uv: "2 Low",
-    bg: "linear-gradient(145deg, #162447, #1f4068 62%, #0f172a)",
-    accent: "#60a5fa",
+    lat: 6.7494,
+    lon: 125.3572,
+    defaultType: "cloudy" as const,
+    defaultTempC: 30,
+    defaultCondition: "Partly Cloudy",
+    defaultHumidity: 67,
+    defaultWind: 8,
+    defaultUv: "5 Moderate",
+    defaultBg: "linear-gradient(145deg, #1e293b, #334155 55%, #0f172a)",
+    defaultAccent: "#38bdf8",
   },
   {
     city: "Davao City",
     province: "Davao Region",
-    type: "sunny" as const,
-    tempC: 29,
-    condition: "Golden Hour · Clear Sky",
-    humidity: 68,
-    wind: 14,
-    uv: "7 High",
-    bg: "linear-gradient(145deg, #7c2d12, #c2410c 45%, #1e293b)",
-    accent: "#fbbf24",
+    lat: 7.1907,
+    lon: 125.4553,
+    defaultType: "sunny" as const,
+    defaultTempC: 29,
+    defaultCondition: "Golden Hour · Clear Sky",
+    defaultHumidity: 75,
+    defaultWind: 10,
+    defaultUv: "6 High",
+    defaultBg: "linear-gradient(145deg, #7c2d12, #c2410c 45%, #1e293b)",
+    defaultAccent: "#fbbf24",
   },
   {
     city: "Cebu City",
     province: "Central Visayas",
-    type: "cloudy" as const,
-    tempC: 31,
-    condition: "Partly Cloudy · Warm",
-    humidity: 74,
-    wind: 18,
-    uv: "8 Very High",
-    bg: "linear-gradient(145deg, #1e293b, #334155 55%, #0f172a)",
-    accent: "#38bdf8",
+    lat: 10.3157,
+    lon: 123.8854,
+    defaultType: "cloudy" as const,
+    defaultTempC: 28,
+    defaultCondition: "Partly Cloudy · Warm",
+    defaultHumidity: 81,
+    defaultWind: 12,
+    defaultUv: "7 High",
+    defaultBg: "linear-gradient(145deg, #1e293b, #334155 55%, #0f172a)",
+    defaultAccent: "#38bdf8",
   },
   {
     city: "Manila",
     province: "Metro Manila",
-    type: "sunny" as const,
-    tempC: 32,
-    condition: "Sunny · Heat Index 36°C",
-    humidity: 62,
-    wind: 15,
-    uv: "9 Extreme",
-    bg: "linear-gradient(145deg, #9a3412, #ea580c 55%, #182234)",
-    accent: "#f59e0b",
+    lat: 14.5995,
+    lon: 120.9842,
+    defaultType: "rainy" as const,
+    defaultTempC: 29,
+    defaultCondition: "Light Rain Showers",
+    defaultHumidity: 68,
+    defaultWind: 14,
+    defaultUv: "8 Very High",
+    defaultBg: "linear-gradient(145deg, #162447, #1f4068 62%, #0f172a)",
+    defaultAccent: "#60a5fa",
   },
 ]
+
+function parseWeatherCode(code: number, isDay: number = 1) {
+  if (code === 0) {
+    return {
+      type: "sunny" as const,
+      condition: isDay ? "Clear Sky · Sunny" : "Clear Sky · Starlit Night",
+      bg: isDay
+        ? "linear-gradient(145deg, #7c2d12, #c2410c 45%, #1e293b)"
+        : "linear-gradient(145deg, #0f172a, #1e1b4b 60%, #090d16)",
+      accent: isDay ? "#fbbf24" : "#93c5fa",
+    }
+  }
+  if (code >= 1 && code <= 3) {
+    return {
+      type: code === 3 ? ("cloudy" as const) : ("sunny" as const),
+      condition:
+        code === 1
+          ? "Mainly Clear"
+          : code === 2
+            ? "Partly Cloudy"
+            : "Overcast · Cloudy",
+      bg:
+        code === 3
+          ? "linear-gradient(145deg, #1e293b, #334155 55%, #0f172a)"
+          : isDay
+            ? "linear-gradient(145deg, #bd6a8d, #4569b3 65%, #183564)"
+            : "linear-gradient(145deg, #1e1b4b, #312e81 65%, #0f172a)",
+      accent: code === 3 ? "#38bdf8" : "#fbbf24",
+    }
+  }
+  if (code === 45 || code === 48) {
+    return {
+      type: "cloudy" as const,
+      condition: "Foggy · Low Visibility",
+      bg: "linear-gradient(145deg, #334155, #475569 55%, #1e293b)",
+      accent: "#94a3b8",
+    }
+  }
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+    return {
+      type: "rainy" as const,
+      condition:
+        code >= 61 && code <= 65 ? "Tropical Rain Showers" : "Light Drizzle",
+      bg: "linear-gradient(145deg, #162447, #1f4068 62%, #0f172a)",
+      accent: "#60a5fa",
+    }
+  }
+  if (code >= 95 && code <= 99) {
+    return {
+      type: "rainy" as const,
+      condition: "Tropical Thunderstorm",
+      bg: "linear-gradient(145deg, #181829, #282147 62%, #0b0f19)",
+      accent: "#818cf8",
+    }
+  }
+  return {
+    type: "cloudy" as const,
+    condition: "Fair Skies",
+    bg: "linear-gradient(145deg, #1e293b, #334155 55%, #0f172a)",
+    accent: "#38bdf8",
+  }
+}
+
+type LiveCityWeather = {
+  tempC: number
+  humidity: number
+  wind: number
+  uv: string
+  type: "sunny" | "rainy" | "cloudy"
+  condition: string
+  bg: string
+  accent: string
+}
 
 function AnimatedWeatherWidget() {
   const [activeCityIndex, setActiveCityIndex] = useState(0)
   const [unit, setUnit] = useState<"C" | "F">("C")
-  const current = weatherCities[activeCityIndex]
+  const [liveWeather, setLiveWeather] = useState<Record<number, LiveCityWeather>>({})
+  const [isLive, setIsLive] = useState<boolean>(false)
+
+  const cityConfig = weatherCities[activeCityIndex]
+  const current = liveWeather[activeCityIndex] ?? {
+    tempC: cityConfig.defaultTempC,
+    humidity: cityConfig.defaultHumidity,
+    wind: cityConfig.defaultWind,
+    uv: cityConfig.defaultUv,
+    type: cityConfig.defaultType,
+    condition: cityConfig.defaultCondition,
+    bg: cityConfig.defaultBg,
+    accent: cityConfig.defaultAccent,
+  }
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function fetchRealTimeWeather() {
+      try {
+        const lats = weatherCities.map((c) => c.lat).join(",")
+        const lons = weatherCities.map((c) => c.lon).join(",")
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&hourly=uv_index&forecast_days=1`,
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        const results = Array.isArray(data) ? data : [data]
+
+        if (!isMounted) return
+
+        const updated: Record<number, LiveCityWeather> = {}
+        const currentHour = new Date().getHours()
+
+        results.forEach((item, idx) => {
+          if (!item?.current) return
+          const code = item.current.weather_code ?? 0
+          const isDay = item.current.is_day ?? 1
+          const parsed = parseWeatherCode(code, isDay)
+          const uvVal = item.hourly?.uv_index?.[currentHour] ?? 5
+          const uvLabel =
+            uvVal <= 2
+              ? `${Math.round(uvVal)} Low`
+              : uvVal <= 5
+                ? `${Math.round(uvVal)} Moderate`
+                : uvVal <= 7
+                  ? `${Math.round(uvVal)} High`
+                  : `${Math.round(uvVal)} Very High`
+
+          updated[idx] = {
+            tempC: Math.round(item.current.temperature_2m),
+            humidity: Math.round(item.current.relative_humidity_2m),
+            wind: Math.round(item.current.wind_speed_10m),
+            uv: uvLabel,
+            type: parsed.type,
+            condition: parsed.condition,
+            bg: parsed.bg,
+            accent: parsed.accent,
+          }
+        })
+
+        setLiveWeather(updated)
+        setIsLive(true)
+      } catch (err) {
+        console.warn("Real-time weather API notice:", err)
+      }
+    }
+
+    fetchRealTimeWeather()
+    const timer = setInterval(fetchRealTimeWeather, 10 * 60 * 1000)
+    return () => {
+      isMounted = false
+      clearInterval(timer)
+    }
+  }, [])
 
   const displayTemp =
     unit === "C" ? current.tempC : Math.round((current.tempC * 9) / 5 + 32)
@@ -826,7 +981,7 @@ function AnimatedWeatherWidget() {
           <div className="weather-location-tag">
             <MapPin size={13} />
             <span>
-              {current.city} · {current.province}
+              {cityConfig.city} · {cityConfig.province}
             </span>
           </div>
           <div className="weather-degrees">
@@ -899,7 +1054,7 @@ function AnimatedWeatherWidget() {
           </div>
           <strong className="weather-uv-badge">{current.uv}</strong>
           <small className="weather-live-tag">
-            <span className="weather-pulse" /> LIVE SIM
+            <span className="weather-pulse" /> {isLive ? "LIVE API (OPEN-METEO)" : "LIVE SIM"}
           </small>
         </div>
       </div>
