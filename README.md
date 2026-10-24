@@ -1,6 +1,6 @@
 # Ashlee Rivera — Personal Portfolio (Q2)
 hello my friend how are you
-my name is guest again
+my name is guest again ashlee bitaw uy 
 
 > A modern, responsive, and motion-led portfolio website showcasing creative front-end development, interactive UI experiences, and graphic design work. Built with **React 19**, **Next.js**, **GSAP (GreenSock)**, and **Tailwind CSS**.
 
