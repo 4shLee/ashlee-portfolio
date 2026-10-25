@@ -17,6 +17,7 @@ import {
   Code2,
   Droplets,
   ExternalLink,
+  Layers,
   Mail,
   MapPin,
   Pause,
@@ -313,15 +314,137 @@ const certificateGalleryItems = [
 
 function CertificateSwipeGallery() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const [isFanned, setIsFanned] = useState(false)
+  const activeCardRef = useRef<HTMLDivElement>(null)
+  const glareRef = useRef<HTMLDivElement>(null)
+  const isAnimating = useRef(false)
   const touchStartX = useRef<number | null>(null)
   const total = certificateGalleryItems.length
 
-  const handlePrev = () => {
-    setActiveIndex((prev) => (prev === 0 ? total - 1 : prev - 1))
+  const handleNext = () => {
+    if (isAnimating.current) return
+    isAnimating.current = true
+
+    const card = activeCardRef.current
+    if (card && !isFanned) {
+      // 3D Card Throw right physics with GSAP
+      gsap.to(card, {
+        x: 230,
+        y: -30,
+        rotation: 20,
+        scale: 1.08,
+        opacity: 0,
+        duration: 0.38,
+        ease: "power2.in",
+        onComplete: () => {
+          gsap.set(card, { x: 0, y: 0, rotation: 0, scale: 0.9, opacity: 0 })
+          setActiveIndex((prev) => (prev === total - 1 ? 0 : prev + 1))
+          isAnimating.current = false
+        },
+      })
+    } else {
+      setActiveIndex((prev) => (prev === total - 1 ? 0 : prev + 1))
+      isAnimating.current = false
+    }
   }
 
-  const handleNext = () => {
-    setActiveIndex((prev) => (prev === total - 1 ? 0 : prev + 1))
+  const handlePrev = () => {
+    if (isAnimating.current) return
+    isAnimating.current = true
+
+    const card = activeCardRef.current
+    if (card && !isFanned) {
+      // 3D Card Throw left physics with GSAP
+      gsap.to(card, {
+        x: -230,
+        y: -30,
+        rotation: -20,
+        scale: 1.08,
+        opacity: 0,
+        duration: 0.38,
+        ease: "power2.in",
+        onComplete: () => {
+          gsap.set(card, { x: 0, y: 0, rotation: 0, scale: 0.9, opacity: 0 })
+          setActiveIndex((prev) => (prev === 0 ? total - 1 : prev - 1))
+          isAnimating.current = false
+        },
+      })
+    } else {
+      setActiveIndex((prev) => (prev === 0 ? total - 1 : prev - 1))
+      isAnimating.current = false
+    }
+  }
+
+  // Animate the entrance of the new active card
+  useEffect(() => {
+    if (activeCardRef.current && !isFanned) {
+      gsap.fromTo(
+        activeCardRef.current,
+        {
+          scale: 0.92,
+          y: 16,
+          opacity: 0.75,
+        },
+        {
+          scale: 1,
+          y: 0,
+          opacity: 1,
+          duration: 0.45,
+          ease: "back.out(1.5)",
+          clearProps: "transform,opacity",
+        },
+      )
+    }
+  }, [activeIndex, isFanned])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!activeCardRef.current || isFanned) return
+    const card = activeCardRef.current
+    const rect = card.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const percentX = Math.round((x / rect.width) * 100)
+    const percentY = Math.round((y / rect.height) * 100)
+
+    const rotateX = ((y - centerY) / centerY) * -11
+    const rotateY = ((x - centerX) / centerX) * 11
+
+    gsap.to(card, {
+      rotateX,
+      rotateY,
+      transformPerspective: 1000,
+      transformOrigin: "center",
+      duration: 0.22,
+      ease: "power1.out",
+    })
+
+    if (glareRef.current) {
+      gsap.to(glareRef.current, {
+        opacity: 0.72,
+        background: `radial-gradient(circle at ${percentX}% ${percentY}%, rgba(255, 255, 255, 0.85) 0%, rgba(103, 217, 233, 0.4) 30%, transparent 68%)`,
+        duration: 0.18,
+        ease: "power1.out",
+      })
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (!activeCardRef.current) return
+    gsap.to(activeCardRef.current, {
+      rotateX: 0,
+      rotateY: 0,
+      duration: 0.55,
+      ease: "power2.out",
+    })
+    if (glareRef.current) {
+      gsap.to(glareRef.current, {
+        opacity: 0,
+        duration: 0.4,
+        ease: "power2.out",
+      })
+    }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -336,16 +459,125 @@ function CertificateSwipeGallery() {
     touchStartX.current = null
   }
 
+  // Calculate position and 3D transform for each card in the deck
+  const getCardTransform = (index: number) => {
+    const diff = (index - activeIndex + total) % total
+
+    if (isFanned) {
+      let fannedOffset = diff
+      if (diff > total / 2) fannedOffset = diff - total
+
+      if (Math.abs(fannedOffset) <= 2) {
+        const xPercent = fannedOffset * 25
+        const rotateDeg = fannedOffset * 8
+        const yOffset =
+          Math.abs(fannedOffset) * 12 - (fannedOffset === 0 ? 10 : 0)
+        const scale = fannedOffset === 0 ? 1.02 : 0.92
+        const zIndex = 20 - Math.abs(fannedOffset) * 4
+
+        return {
+          transform: `translate3d(${xPercent}%, ${yOffset}px, 0) scale(${scale}) rotate(${rotateDeg}deg)`,
+          zIndex,
+          opacity: 1,
+          pointerEvents: "auto" as const,
+          cursor: fannedOffset === 0 ? "grab" : "pointer",
+          transition:
+            "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease",
+        }
+      }
+      return {
+        transform: "scale(0.6) translate3d(0, 50px, -60px)",
+        zIndex: 1,
+        opacity: 0,
+        pointerEvents: "none" as const,
+        transition: "transform 0.4s ease, opacity 0.3s ease",
+      }
+    }
+
+    // Stacked Deck physics
+    if (diff === 0) {
+      return {
+        transform: "translate3d(0, 0, 0) scale(1) rotate(0deg)",
+        zIndex: 20,
+        opacity: 1,
+        pointerEvents: "auto" as const,
+        cursor: "grab",
+        transition:
+          "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease",
+      }
+    }
+    if (diff === 1) {
+      return {
+        transform: "translate3d(0, 10px, -20px) scale(0.94) rotate(-2.5deg)",
+        zIndex: 14,
+        opacity: 0.85,
+        pointerEvents: "auto" as const,
+        cursor: "pointer",
+        transition:
+          "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease",
+      }
+    }
+    if (diff === 2) {
+      return {
+        transform: "translate3d(0, 20px, -40px) scale(0.88) rotate(3deg)",
+        zIndex: 10,
+        opacity: 0.65,
+        pointerEvents: "auto" as const,
+        cursor: "pointer",
+        transition:
+          "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease",
+      }
+    }
+    if (diff === 3) {
+      return {
+        transform: "translate3d(0, 28px, -60px) scale(0.82) rotate(-3.5deg)",
+        zIndex: 6,
+        opacity: 0.45,
+        pointerEvents: "none" as const,
+        transition:
+          "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.35s ease",
+      }
+    }
+
+    return {
+      transform: "translate3d(0, 40px, -80px) scale(0.7) rotate(0deg)",
+      zIndex: 1,
+      opacity: 0,
+      pointerEvents: "none" as const,
+      transition: "transform 0.4s ease, opacity 0.3s ease",
+    }
+  }
+
   return (
     <div
       className="cert-gallery-container"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      aria-label="Interactive certificate swipe gallery"
+      aria-label="Interactive 3D certificate deck gallery"
     >
+      {/* Top Deck Controls Header */}
+      <div className="cert-top-controls">
+        <span className="cert-deck-badge">
+          <Sparkles size={11} /> 3D Motion Deck
+        </span>
+        <button
+          type="button"
+          className={`cert-fan-toggle magnetic-target ${isFanned ? "active" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsFanned(!isFanned)
+          }}
+          aria-label={
+            isFanned ? "Stack certificates into deck" : "Fan out certificates"
+          }
+        >
+          <Layers size={12} /> {isFanned ? "Stack Deck" : "Fan Out"}
+        </button>
+      </div>
+
       <button
         type="button"
-        className="gallery-nav-btn prev"
+        className="gallery-nav-btn prev magnetic-target"
         onClick={(e) => {
           e.stopPropagation()
           handlePrev()
@@ -358,49 +590,23 @@ function CertificateSwipeGallery() {
       <div className="cert-card-stack">
         {certificateGalleryItems.map((cert, index) => {
           const isCurrent = index === activeIndex
-          const isPrev =
-            index === (activeIndex === 0 ? total - 1 : activeIndex - 1)
-          const isNext =
-            index === (activeIndex === total - 1 ? 0 : activeIndex + 1)
-
-          let styleClass = "cert-slide-hidden"
-          let inlineStyle: React.CSSProperties = {}
-
-          if (isCurrent) {
-            styleClass = "cert-slide-active"
-            inlineStyle = {
-              transform: "translateX(0%) scale(1) rotate(0deg)",
-              zIndex: 10,
-              opacity: 1,
-            }
-          } else if (isPrev) {
-            styleClass = "cert-slide-side"
-            inlineStyle = {
-              transform: "translateX(-20%) scale(0.9) rotate(-4deg)",
-              zIndex: 5,
-              opacity: 0.75,
-              cursor: "pointer",
-            }
-          } else if (isNext) {
-            styleClass = "cert-slide-side"
-            inlineStyle = {
-              transform: "translateX(20%) scale(0.9) rotate(4deg)",
-              zIndex: 5,
-              opacity: 0.75,
-              cursor: "pointer",
-            }
-          }
+          const cardStyle = getCardTransform(index)
 
           return (
             <div
               key={cert.id}
-              className={`cert-slide ${styleClass}`}
-              style={inlineStyle}
+              ref={isCurrent ? activeCardRef : undefined}
+              className={`cert-slide ${isCurrent ? "cert-slide-active" : "cert-slide-side"}`}
+              style={cardStyle}
+              onMouseMove={isCurrent ? handleMouseMove : undefined}
+              onMouseLeave={isCurrent ? handleMouseLeave : undefined}
               onClick={() => {
-                if (isPrev) handlePrev()
-                if (isNext) handleNext()
+                if (!isCurrent) setActiveIndex(index)
               }}
             >
+              {/* Dynamic Holographic Foil Glare layer */}
+              {isCurrent && <div className="cert-holo-glare" ref={glareRef} />}
+
               <div className="cert-inner">
                 {/* Real certificate image if available in public/certificates/ */}
                 <img
@@ -408,11 +614,10 @@ function CertificateSwipeGallery() {
                   alt={cert.title}
                   className="cert-image-elem"
                   onError={(e) => {
-                    // Gracefully hide broken image element if file not yet added to public/certificates/
                     e.currentTarget.style.display = "none"
                   }}
                 />
-                {/* Polished fallback certificate card design */}
+                {/* Polished fallback certificate card design with metallic seal */}
                 <div
                   className="cert-fallback-art"
                   style={{ background: cert.color }}
@@ -432,7 +637,7 @@ function CertificateSwipeGallery() {
 
       <button
         type="button"
-        className="gallery-nav-btn next"
+        className="gallery-nav-btn next magnetic-target"
         onClick={(e) => {
           e.stopPropagation()
           handleNext()
@@ -458,7 +663,8 @@ function CertificateSwipeGallery() {
           ))}
         </div>
         <small className="gallery-counter">
-          {String(activeIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+          {String(activeIndex + 1).padStart(2, "0")} /{" "}
+          {String(total).padStart(2, "0")}
         </small>
       </div>
     </div>
@@ -1077,25 +1283,105 @@ export default function PortfolioClient({
   career,
 }: Props) {
   const root = useRef<HTMLDivElement>(null)
+  const cursorDotRef = useRef<HTMLDivElement>(null)
+  const cursorGlowRef = useRef<HTMLDivElement>(null)
+  const marqueeTrackRef = useRef<HTMLDivElement>(null)
 
-  // Initialize GSAP entrance and ScrollTrigger animations.
-  // Using `useEffect` avoids React's SSR `useLayoutEffect` console warnings.
+  // Initialize GSAP entrance, scroll-driven, parallax, and interactive motion features
   useEffect(() => {
     // Respect accessibility settings for users who prefer reduced motion
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
+    const isTouch =
+      window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window
+
+    let cleanUpCursor: (() => void) | undefined
+
     const context = gsap.context((self) => {
-      // Hero elements entrance animation
-      gsap.from(".hero-reveal", {
-        y: 34,
-        opacity: 0,
-        duration: 0.9,
-        stagger: 0.1,
-        ease: "power3.out",
-        clearProps: "transform,opacity", // Clears inline styles after animation so CSS hover transitions work
+      // 1. Top Scroll Progress Bar (ScrollTrigger Scrub)
+      gsap.fromTo(
+        ".scroll-progress-bar",
+        { scaleX: 0 },
+        {
+          scaleX: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: document.documentElement,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 0.15,
+          },
+        },
+      )
+
+      // 2. Compact & blurred navbar state when scrolled
+      ScrollTrigger.create({
+        start: "top -50",
+        end: 999999,
+        toggleClass: {
+          className: "site-header--scrolled",
+          targets: ".site-header",
+        },
       })
 
-      // Continuous floating ambient motion for the hero orb
+      // 3. Hero elements entrance timeline
+      const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } })
+      heroTl
+        .from(".hero-reveal", {
+          y: 40,
+          opacity: 0,
+          duration: 0.95,
+          stagger: 0.08,
+          clearProps: "transform,opacity",
+        })
+        .from(
+          ".hero-scroll-indicator",
+          {
+            opacity: 0,
+            y: 20,
+            duration: 0.8,
+            clearProps: "transform,opacity",
+          },
+          "-=0.4",
+        )
+
+      // 4. Parallax scroll effect on Hero media & ambient orb
+      gsap.to(".hero-orb", {
+        y: 110,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: 0.5,
+        },
+      })
+
+      gsap.to(".portrait-frame", {
+        y: -35,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: 0.5,
+        },
+      })
+
+      // Fade out hero scroll indicator as user scrolls down
+      gsap.to(".hero-scroll-indicator", {
+        opacity: 0,
+        y: -24,
+        ease: "power1.out",
+        scrollTrigger: {
+          trigger: ".hero",
+          start: "12% top",
+          end: "38% top",
+          scrub: true,
+        },
+      })
+
+      // Ambient continuous floating motion for hero orb
       gsap.to(".hero-orb", {
         y: -14,
         duration: 3.5,
@@ -1104,32 +1390,280 @@ export default function PortfolioClient({
         ease: "sine.inOut",
       })
 
-      // Query elements with .reveal strictly scoped inside root container
+      // 5. Infinite GSAP Marquee (Tech Ribbon) with scroll velocity speedup
+      if (marqueeTrackRef.current) {
+        const marqueeAnim = gsap.to(marqueeTrackRef.current, {
+          xPercent: -50,
+          repeat: -1,
+          duration: 28,
+          ease: "none",
+        })
+
+        // Accelerate or reverse marquee on active user scrolling
+        ScrollTrigger.create({
+          trigger: document.documentElement,
+          start: "top top",
+          end: "bottom bottom",
+          onUpdate: (st) => {
+            const velocity = st.getVelocity()
+            const targetTimeScale =
+              st.direction === 1
+                ? Math.min(3.5, 1 + Math.abs(velocity) / 600)
+                : Math.max(-2.5, -(1 + Math.abs(velocity) / 600))
+
+            gsap.to(marqueeAnim, {
+              timeScale: targetTimeScale,
+              duration: 0.5,
+              overwrite: "auto",
+              onComplete: () => {
+                gsap.to(marqueeAnim, {
+                  timeScale: 1,
+                  duration: 1.2,
+                  ease: "power2.out",
+                })
+              },
+            })
+          },
+        })
+      }
+
+      // 6. ScrollTrigger Animated Number Counters
+      const counters = self.selector
+        ? (self.selector(".stat-counter") as HTMLElement[])
+        : gsap.utils.toArray<HTMLElement>(".stat-counter", root.current)
+
+      counters.forEach((counter) => {
+        const targetVal = parseInt(
+          counter.getAttribute("data-target") || "0",
+          10,
+        )
+        const obj = { val: 0 }
+        gsap.to(obj, {
+          val: targetVal,
+          roundProps: "val",
+          duration: 2,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: counter,
+            start: "top 88%",
+            once: true,
+          },
+          onUpdate: () => {
+            counter.textContent = String(obj.val)
+          },
+        })
+      })
+
+      // 7. General Section & Card ScrollTrigger Reveals
       const reveals = self.selector
         ? (self.selector(".reveal") as HTMLElement[])
         : gsap.utils.toArray<HTMLElement>(".reveal", root.current)
 
-      // ScrollTrigger reveal animation for cards and sections
       reveals.forEach((element) => {
         gsap.from(element, {
-          y: 48,
+          y: 44,
           opacity: 0,
           duration: 0.85,
           ease: "power3.out",
-          // IMPORTANT: `clearProps: "transform,opacity"` removes inline style transforms when the animation completes.
-          // Without this, inline `transform: translate(0px, 0px)` overrides CSS `.skill-card:hover { transform: translateY(-4px) }`
-          // and breaks CSS position: sticky on `.experience-heading`.
           clearProps: "transform,opacity",
           scrollTrigger: { trigger: element, start: "top 86%", once: true },
         })
       })
+
+      // 8. Staggered Skill Chips inside skill cards
+      const skillCards = self.selector
+        ? (self.selector(".skill-card") as HTMLElement[])
+        : gsap.utils.toArray<HTMLElement>(".skill-card", root.current)
+
+      skillCards.forEach((card) => {
+        const chips = card.querySelectorAll(".chip-list span")
+        if (chips.length > 0) {
+          gsap.from(chips, {
+            scale: 0.8,
+            opacity: 0,
+            duration: 0.5,
+            stagger: 0.05,
+            ease: "back.out(1.7)",
+            clearProps: "transform,opacity",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 80%",
+              once: true,
+            },
+          })
+        }
+      })
+
+      // 9. Interactive 3D Tilt on Cards (Desktop only)
+      if (!isTouch) {
+        const tiltCards = self.selector
+          ? (self.selector(".tilt-card") as HTMLElement[])
+          : gsap.utils.toArray<HTMLElement>(".tilt-card", root.current)
+
+        tiltCards.forEach((card) => {
+          const onMove = (e: MouseEvent) => {
+            const rect = card.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const y = e.clientY - rect.top
+            const centerX = rect.width / 2
+            const centerY = rect.height / 2
+            const rotateX = ((y - centerY) / centerY) * -6
+            const rotateY = ((x - centerX) / centerX) * 6
+
+            gsap.to(card, {
+              rotateX,
+              rotateY,
+              transformPerspective: 1000,
+              transformOrigin: "center",
+              duration: 0.35,
+              ease: "power1.out",
+            })
+          }
+
+          const onLeave = () => {
+            gsap.to(card, {
+              rotateX: 0,
+              rotateY: 0,
+              duration: 0.6,
+              ease: "power2.out",
+            })
+          }
+
+          card.addEventListener("mousemove", onMove)
+          card.addEventListener("mouseleave", onLeave)
+        })
+
+        // 10. Magnetic Button Hover Physics
+        const magneticTargets = self.selector
+          ? (self.selector(".magnetic-target") as HTMLElement[])
+          : gsap.utils.toArray<HTMLElement>(".magnetic-target", root.current)
+
+        magneticTargets.forEach((btn) => {
+          const onMove = (e: MouseEvent) => {
+            const rect = btn.getBoundingClientRect()
+            const x = (e.clientX - (rect.left + rect.width / 2)) * 0.32
+            const y = (e.clientY - (rect.top + rect.height / 2)) * 0.32
+            gsap.to(btn, { x, y, duration: 0.3, ease: "power2.out" })
+          }
+
+          const onLeave = () => {
+            gsap.to(btn, {
+              x: 0,
+              y: 0,
+              duration: 0.65,
+              ease: "elastic.out(1, 0.4)",
+            })
+          }
+
+          btn.addEventListener("mousemove", onMove)
+          btn.addEventListener("mouseleave", onLeave)
+        })
+
+        // 11. Custom Interactive Fluid Cursor with Dual Follower (Dot & Glow)
+        if (cursorDotRef.current && cursorGlowRef.current) {
+          const dot = cursorDotRef.current
+          const glow = cursorGlowRef.current
+
+          gsap.set([dot, glow], { xPercent: -50, yPercent: -50, opacity: 0 })
+
+          const xDot = gsap.quickTo(dot, "x", {
+            duration: 0.08,
+            ease: "power2.out",
+          })
+          const yDot = gsap.quickTo(dot, "y", {
+            duration: 0.08,
+            ease: "power2.out",
+          })
+          const xGlow = gsap.quickTo(glow, "x", {
+            duration: 0.3,
+            ease: "power2.out",
+          })
+          const yGlow = gsap.quickTo(glow, "y", {
+            duration: 0.3,
+            ease: "power2.out",
+          })
+
+          let hasMoved = false
+
+          const onMouseMove = (e: MouseEvent) => {
+            if (!hasMoved) {
+              hasMoved = true
+              gsap.to([dot, glow], { opacity: 1, duration: 0.3 })
+            }
+            xDot(e.clientX)
+            yDot(e.clientY)
+            xGlow(e.clientX)
+            yGlow(e.clientY)
+          }
+
+          const onMouseEnterInteractive = () => {
+            gsap.to(glow, {
+              scale: 2.2,
+              borderColor: "rgba(103, 217, 233, 0.8)",
+              backgroundColor: "rgba(108, 140, 255, 0.22)",
+              duration: 0.3,
+              ease: "power2.out",
+            })
+            gsap.to(dot, { scale: 0.5, duration: 0.2 })
+          }
+
+          const onMouseLeaveInteractive = () => {
+            gsap.to(glow, {
+              scale: 1,
+              borderColor: "rgba(103, 217, 233, 0.35)",
+              backgroundColor: "rgba(108, 140, 255, 0.08)",
+              duration: 0.3,
+              ease: "power2.out",
+            })
+            gsap.to(dot, { scale: 1, duration: 0.2 })
+          }
+
+          window.addEventListener("mousemove", onMouseMove)
+
+          const clickables = document.querySelectorAll<HTMLElement>(
+            "a, button, .project-card, .skill-card, input, select, textarea",
+          )
+          clickables.forEach((el) => {
+            el.addEventListener("mouseenter", onMouseEnterInteractive)
+            el.addEventListener("mouseleave", onMouseLeaveInteractive)
+          })
+
+          cleanUpCursor = () => {
+            window.removeEventListener("mousemove", onMouseMove)
+            clickables.forEach((el) => {
+              el.removeEventListener("mouseenter", onMouseEnterInteractive)
+              el.removeEventListener("mouseleave", onMouseLeaveInteractive)
+            })
+          }
+        }
+      }
     }, root)
 
-    return () => context.revert() // Cleanup GSAP context on unmount
+    return () => {
+      cleanUpCursor?.()
+      context.revert() // Cleanup GSAP context on unmount
+    }
   }, [])
 
   return (
     <div ref={root}>
+      {/* Top GSAP Scroll Reading Progress Bar */}
+      <div className="scroll-progress-container" aria-hidden="true">
+        <div className="scroll-progress-bar" />
+      </div>
+
+      {/* Interactive Custom GSAP Fluid Cursor (Desktop only) */}
+      <div
+        className="custom-cursor-dot"
+        ref={cursorDotRef}
+        aria-hidden="true"
+      />
+      <div
+        className="custom-cursor-glow"
+        ref={cursorGlowRef}
+        aria-hidden="true"
+      />
+
       <header className="site-header">
         <div className="shell nav-inner">
           <Brand />
@@ -1140,7 +1674,7 @@ export default function PortfolioClient({
             <a href="#credentials">Credentials</a>
             <a href="#contact">Contact</a>
           </nav>
-          <a className="nav-cta" href="#contact">
+          <a className="nav-cta magnetic-target" href="#contact">
             Let’s build something amazing <ArrowUpRight size={16} />
           </a>
         </div>
@@ -1164,10 +1698,10 @@ export default function PortfolioClient({
               with real people.
             </p>
             <div className="hero-actions hero-reveal">
-              <a className="button primary" href="#projects">
+              <a className="button primary magnetic-target" href="#projects">
                 View my work <ArrowDown size={18} />
               </a>
-              <a className="button secondary" href="#contact">
+              <a className="button secondary magnetic-target" href="#contact">
                 Contact me <ArrowUpRight size={18} />
               </a>
             </div>
@@ -1180,16 +1714,18 @@ export default function PortfolioClient({
                 rel="noreferrer"
                 aria-label="GitHub"
                 title="GitHub"
+                className="magnetic-target"
               >
                 <GithubIcon size={17} />
               </a>
-              {/* Facebook Profile Link - replace with your exact profile URL if needed */}
+              {/* Facebook Profile Link */}
               <a
                 href="https://www.facebook.com/a.ashdieee"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Facebook"
                 title="Facebook"
+                className="magnetic-target"
               >
                 <FacebookIcon size={17} />
               </a>
@@ -1199,6 +1735,7 @@ export default function PortfolioClient({
                 rel="noreferrer"
                 aria-label="LinkedIn"
                 title="LinkedIn"
+                className="magnetic-target"
               >
                 <LinkedinIcon size={17} />
               </a>
@@ -1206,6 +1743,7 @@ export default function PortfolioClient({
                 href="mailto:ashdieee@gmail.com"
                 aria-label="Gmail"
                 title="Gmail: ashdieee@gmail.com"
+                className="magnetic-target"
               >
                 <Mail size={17} />
               </a>
@@ -1230,7 +1768,97 @@ export default function PortfolioClient({
               </strong>
             </div>
           </div>
+
+          {/* Floating Scroll Down Indicator */}
+          <div className="hero-scroll-indicator hero-reveal">
+            <div className="hero-scroll-mouse">
+              <span className="hero-scroll-wheel" />
+            </div>
+            <span>Scroll to explore</span>
+          </div>
         </section>
+
+        {/* GSAP Infinite Ticker Marquee */}
+        <div className="gsap-marquee-wrapper" aria-hidden="true">
+          <div className="gsap-marquee-track" ref={marqueeTrackRef}>
+            <div className="gsap-marquee-content">
+              <span>CREATIVE FRONT-END DEVELOPER</span>
+              <span className="marquee-star">✦</span>
+              <span>REACT & NEXT.JS</span>
+              <span className="marquee-star">✦</span>
+              <span>GSAP MOTION CRAFT</span>
+              <span className="marquee-star">✦</span>
+              <span>DIGITAL LOGO DESIGN</span>
+              <span className="marquee-star">✦</span>
+              <span>UI/UX & FIGMA</span>
+              <span className="marquee-star">✦</span>
+              <span>TAILWIND CSS</span>
+              <span className="marquee-star">✦</span>
+              <span>INTERACTIVE WEB EXPERIENCES</span>
+              <span className="marquee-star">✦</span>
+            </div>
+            <div className="gsap-marquee-content" aria-hidden="true">
+              <span>CREATIVE FRONT-END DEVELOPER</span>
+              <span className="marquee-star">✦</span>
+              <span>REACT & NEXT.JS</span>
+              <span className="marquee-star">✦</span>
+              <span>GSAP MOTION CRAFT</span>
+              <span className="marquee-star">✦</span>
+              <span>DIGITAL LOGO DESIGN</span>
+              <span className="marquee-star">✦</span>
+              <span>UI/UX & FIGMA</span>
+              <span className="marquee-star">✦</span>
+              <span>TAILWIND CSS</span>
+              <span className="marquee-star">✦</span>
+              <span>INTERACTIVE WEB EXPERIENCES</span>
+              <span className="marquee-star">✦</span>
+            </div>
+          </div>
+        </div>
+
+        {/* GSAP Animated Stats Counter Banner */}
+        <div className="shell">
+          <div className="stats-banner reveal">
+            <div className="stat-item tilt-card">
+              <div className="stat-number-wrap">
+                <span className="stat-counter" data-target="13">
+                  0
+                </span>
+                <span className="stat-plus">+</span>
+              </div>
+              <p className="stat-label">Verified Certifications & Credentials</p>
+            </div>
+            <div className="stat-item tilt-card">
+              <div className="stat-number-wrap">
+                <span className="stat-counter" data-target="100">
+                  0
+                </span>
+                <span className="stat-plus">%</span>
+              </div>
+              <p className="stat-label">
+                Responsive & Accessible Modern Layouts
+              </p>
+            </div>
+            <div className="stat-item tilt-card">
+              <div className="stat-number-wrap">
+                <span className="stat-counter" data-target="4">
+                  0
+                </span>
+                <span className="stat-plus">th</span>
+              </div>
+              <p className="stat-label">Year IT Scholar at Cor Jesu College</p>
+            </div>
+            <div className="stat-item tilt-card">
+              <div className="stat-number-wrap">
+                <span className="stat-counter" data-target="3">
+                  0
+                </span>
+                <span className="stat-plus">+</span>
+              </div>
+              <p className="stat-label">Interactive GSAP & Live Web Apps</p>
+            </div>
+          </div>
+        </div>
 
         <section className="about section" id="about">
           <div className="shell about-layout reveal">
@@ -1305,7 +1933,7 @@ export default function PortfolioClient({
             <div className="skills-grid">
               {skills.map(
                 ({ icon: Icon, title, description, items }, index) => (
-                  <article className="skill-card reveal" key={title}>
+                  <article className="skill-card tilt-card reveal" key={title}>
                     <div className="skill-top">
                       <span className="skill-icon">
                         <Icon size={21} />
@@ -1348,7 +1976,7 @@ export default function PortfolioClient({
               {projects.length > 0 ? (
                 projects.map((project, index) => (
                   <article
-                    className="project-card reveal"
+                    className="project-card tilt-card reveal"
                     key={project.id}
                     id={project.visualStyle === "gallery" ? "credentials" : undefined}
                   >
@@ -1447,6 +2075,7 @@ export default function PortfolioClient({
                     href="https://mail.google.com/mail/?view=cm&fs=1&to=ashdieee@gmail.com"
                     target="_blank"
                     rel="noreferrer"
+                    className="magnetic-target"
                   >
                     Email me (Gmail) <ArrowUpRight size={16} />
                   </a>
@@ -1454,6 +2083,7 @@ export default function PortfolioClient({
                     href="https://github.com/4shLee"
                     target="_blank"
                     rel="noreferrer"
+                    className="magnetic-target"
                   >
                     GitHub <ArrowUpRight size={16} />
                   </a>
@@ -1461,6 +2091,7 @@ export default function PortfolioClient({
                     href="https://www.linkedin.com/in/ashlee-nicole-rivera-101131356/"
                     target="_blank"
                     rel="noreferrer"
+                    className="magnetic-target"
                   >
                     LinkedIn <ArrowUpRight size={16} />
                   </a>
@@ -1468,6 +2099,7 @@ export default function PortfolioClient({
                     href="https://www.facebook.com/a.ashdieee"
                     target="_blank"
                     rel="noreferrer"
+                    className="magnetic-target"
                   >
                     Facebook <ArrowUpRight size={16} />
                   </a>
@@ -1527,7 +2159,7 @@ export default function PortfolioClient({
           <p suppressHydrationWarning>
             © {new Date().getFullYear()} 2026 Ashlee Rivera. Built with passion in Digos City, Philippines..
           </p>
-          <a href="#top">
+          <a href="#top" className="magnetic-target">
             Back to top <ArrowUpRight size={15} />
           </a>
         </div>
